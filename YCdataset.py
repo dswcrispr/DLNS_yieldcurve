@@ -150,6 +150,7 @@ test_dataset = YieldCurveDataset(
 )
 
 # The scalers can also be easily saved for future use:
+'''
 import joblib
 
 # Save scalers
@@ -159,3 +160,4 @@ joblib.dump(macro_scaler, 'macro_scaler.pkl)
 # Load scalers Later
 yield_scaler = joblib.load('yield_scaler.pkl')
 macro_scaler = joblib.load('macro_scaler.pkl')
+'''
