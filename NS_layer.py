@@ -58,7 +58,6 @@ class NelsonSiegelLayer(nn.Module):
             decay = decay.unsqueeze(-1)  # [batch_size, 1]
         
         # Prepare maturities tensor for broadcasting
-        # Convert to years if provided in months
         maturities = self.maturities.to(decay.device)
         
         # Prevent division by zero for very short maturities
@@ -69,9 +68,11 @@ class NelsonSiegelLayer(nn.Module):
         level_loading = torch.ones_like(tau)
         
         # Prepare for broadcasting with batch dimension
+        # Expand tau to match batch size if needed
         if decay.dim() > 1 and decay.size(0) > 1:
-            # Expand tau to match batch size
-            tau = tau.unsqueeze(0).expand(decay.size(0), -1)
+            # Make sure tau has correct dimensions for broadcasting
+            tau = tau.reshape(1, -1).expand(decay.size(0), -1)
+            level_loading = level_loading.reshape(1, -1).expand(decay.size(0), -1)
         
         # Calculate exponential term
         decay_tau = decay * tau  # [batch_size, n_maturities] or [1, n_maturities]
@@ -108,20 +109,34 @@ class NelsonSiegelLayer(nn.Module):
         # Get factor loadings
         level_loading, slope_loading, curvature_loading = self.get_factor_loadings(decay)
         
-        # Extract level, slope, and curvature factors
-        level = factors[:, 0:1]      # [batch_size, 1]
-        slope = factors[:, 1:2]      # [batch_size, 1]
-        curvature = factors[:, 2:3]  # [batch_size, 1]
-        
-        # If level_loading is not batched but other tensors are, expand it
-        if level_loading.dim() == 1:
-            level_loading = level_loading.unsqueeze(0).expand(batch_size, -1)
-            slope_loading = slope_loading.unsqueeze(0).expand(batch_size, -1)
-            curvature_loading = curvature_loading.unsqueeze(0).expand(batch_size, -1)
-        
+        # Extract level, slope, and curvature factors and ensure they have the correct shape
+        # convert to [batch_size, 1] for proper broadcasting
+        level = factors[:, 0].reshape(batch_size, 1)  # [batch_size, 1]
+        slope = factors[:, 1].reshape(batch_size, 1)  # [batch_size, 1]
+        curvature = factors[:, 2].reshape(batch_size, 1)  # [batch_size, 1]
+                
         # Calculate yields for each maturity
         yields = (level * level_loading + 
                  slope * slope_loading + 
                  curvature * curvature_loading)
         
         return yields, decay
+
+# -------------------Debug test--------------------------------
+# Debug test of NS layer
+import torch
+
+# Create a small test
+maturities = [0.25, 0.5, 1, 2, 3, 5, 7, 10, 20, 30]
+ns_layer = NelsonSiegelLayer(maturities)
+
+# Create fake factors
+batch_size = 32
+factors = torch.randn(batch_size, 4)  # level, slope, curvature, lambda
+
+# Forward pass
+yields, decay = ns_layer(factors)
+
+print(f"Input factors shape: {factors.shape}")
+print(f"Output yields shape: {yields.shape}")
+print(f"Lambda shape: {decay.shape}")

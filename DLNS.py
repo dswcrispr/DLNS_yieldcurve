@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from Encoder import CNN1DTransformerEncoder, TransformerOnlyEncoder
+from encoder import CNN1DTransformerEncoder, TransformerOnlyEncoder
 from NS_layer import NelsonSiegelLayer
 
 class DLNS_CNNTransformer(nn.Module):
@@ -21,6 +21,7 @@ class DLNS_CNNTransformer(nn.Module):
         num_transformer_layers=2, # Number of transformer layers
         dropout=0.1,              # Dropout rate
         seq_length=12,            # Sequence length (lookback window)
+        use_macro=True            # Whether to use macro variables
     ):
         super(DLNS_CNNTransformer, self).__init__()
         
@@ -39,6 +40,7 @@ class DLNS_CNNTransformer(nn.Module):
             num_transformer_layers=num_transformer_layers,
             dropout=dropout,
             seq_length=seq_length,
+            use_macro=use_macro
         )
         
         # Always predict 4 factors (level, slope, curvature, lambda) regardless of time-varying decay
@@ -77,7 +79,7 @@ class DLNS_CNNTransformer(nn.Module):
         # Extract features from encoder
         features = self.encoder(x)
         
-        # Predict NS factors
+        # Predict NS factors, act as Pre-NS layer
         if self.time_varying_decay:
             # For time-varying λ, predict all factors including raw λ
             factors = self.factor_predictor(features)

@@ -51,6 +51,7 @@ class CNN1DTransformerEncoder(nn.Module):
         num_transformer_layers=2, # Number of transformer layers, too many layers will cause overfitting
         dropout=0.1,              # Dropout rate
         seq_length=12,            # Sequence length (lookback window)
+        use_macro=True            # Whether to use macro variables 
     ):
         super(CNN1DTransformerEncoder, self).__init__()
         
@@ -59,6 +60,7 @@ class CNN1DTransformerEncoder(nn.Module):
         self.macro_dim = macro_dim
         self.seq_length = seq_length
         self.hidden_dim = hidden_dim
+        self.use_macro = use_macro
         
         # 1D CNN for extracting features from yield curves
         self.cnn = nn.Sequential(
@@ -83,10 +85,14 @@ class CNN1DTransformerEncoder(nn.Module):
         
         # Calculate CNN output size based on yield_dim
         # Two MaxPool1d layers with stride 2 reduce dimension by factor of 4
-        cnn_output_size = yield_dim // 4 * (cnn_out_channels*2) 
+        cnn_output_size = yield_dim // 4 * (cnn_out_channels*2)
+
+        # Determine the feature dimension for transformer
+        # If not using macro, all transformer dim comes from CNN features
+        cnn_projection_dim = transformer_dim - self.macro_dim if use_macro else transformer_dim
         
         # Linear layer to project CNN output to transformer dimension
-        self.cnn_projector = nn.Linear(cnn_output_size, transformer_dim - macro_dim) # macro variables are used as additional features for the transformer
+        self.cnn_projector = nn.Linear(cnn_output_size, cnn_projection_dim) # macro variables are used as additional features for the transformer
         
         # Positional encoding for transformer
         self.positional_encoding = PositionalEncoding(d_model=transformer_dim)
@@ -96,7 +102,7 @@ class CNN1DTransformerEncoder(nn.Module):
         transformer_encoder_layer = nn.TransformerEncoderLayer(
             d_model=transformer_dim, # input and output dimension of the transformer
             nhead=nhead,
-            dim_feedforward=transformer_dim*4,
+            dim_feedforward=transformer_dim*4, # feedforward dimension, 4 times of transformer dimension
             dropout=dropout,
             batch_first=True
         )
@@ -123,10 +129,16 @@ class CNN1DTransformerEncoder(nn.Module):
             Tensor of shape [batch_size, hidden_dim]
         """
         batch_size = x.shape[0]
-        
-        # Split yield data and macro data
-        yield_data = x[:, :, :self.yield_dim]  # [batch_size, seq_length, yield_dim]
-        macro_data = x[:, :, self.yield_dim:]  # [batch_size, seq_length, macro_dim]
+
+        if self.use_macro and self.macro_dim > 0:
+            # Split yield data and macro data
+            yield_data = x[:, :, :self.yield_dim]  # [batch_size, seq_length, yield_dim]
+            macro_data = x[:, :, self.yield_dim:]  # [batch_size, seq_length, macro_dim]
+
+        else:
+            # Only use yield data
+            yield_data = x # [batch_size, seq_length, yield_dim]
+            macro_data = None
         
         # Process yield data through CNN
         cnn_features = []
@@ -138,16 +150,21 @@ class CNN1DTransformerEncoder(nn.Module):
             cnn_out = self.cnn(yield_t)  # [batch_size, cnn_out_channels*2, yield_dim//4]
             
             # Flatten and project
-            cnn_out_flat = cnn_out.reshape(batch_size, -1)  # [batch_size, cnn_out_channels*2 * yield_dim//4]
+            cnn_out_flat = cnn_out.reshape(batch_size, -1)  
             cnn_projected = self.cnn_projector(cnn_out_flat)  # [batch_size, transformer_dim - macro_dim]
             
             cnn_features.append(cnn_projected)
         
         # Stack CNN features
-        cnn_features = torch.stack(cnn_features, dim=1)  # [batch_size, seq_length, transformer_dim - macro_dim]
-        
-        # Concatenate with macro data for each time step
-        combined_features = torch.cat([cnn_features, macro_data], dim=2)  # [batch_size, seq_length, transformer_dim]
+        cnn_features = torch.stack(cnn_features, dim=1)  # [batch_size, seq_length, projection_dim]
+
+        # Process features through transformer
+        if self.use_macro and self.macro_dim > 0:
+            # Concatenate with macro data for each time step
+            combined_features = torch.cat([cnn_features, macro_data], dim=2)  # [batch_size, seq_length, transformer_dim]
+        else:
+            # Only use CNN features
+            combined_features = cnn_features
         
         # Add positional encoding
         combined_features = self.positional_encoding(combined_features) # this calls forward function of PositionalEncoding class automatically
@@ -228,7 +245,7 @@ class TransformerOnlyEncoder(nn.Module):
         projected_input = self.input_projection(x)  # [batch_size, seq_length, transformer_dim]
         
         # Add positional encoding
-        encoded_input = self.positional_encoding(projected_input)
+        encoded_input = self.positional_encoding(projected_input) # check point, positional encoding for yield data in each time step?
         
         # Process through transformer
         transformer_output = self.transformer_encoder(encoded_input)

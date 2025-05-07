@@ -6,7 +6,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class YieldCurveDataset(Dataset):
     def __init__(self, data, seq_length=12, pred_horizon=6, yield_scaler=None,
-                 macro_scaler=None, is_train=True):
+                 macro_scaler=None, is_train=True, use_macro=True):
         """
         Initialize the YieldCurveDataset class using sklearn scalers.
 
@@ -17,25 +17,27 @@ class YieldCurveDataset(Dataset):
             yield_scaler (MinMaxScaler): Pre-fitted scaler for yield data
             macro_scaler (StandardScaler): Pre-fitted scaler for macro variables
             is_train (bool): Whether this dataset is for training
+            use_macro (bool): Whether to include macro variables as features
         """
         self.data = data.copy()
         self.seq_length = seq_length
         self.pred_horizon = pred_horizon
         self.is_train = is_train
+        self.use_macro = use_macro
 
         # Separate yield data from macro variables
         self.yield_cols = [col for col in data.columns if col not in ['NASDAQ', 'IP', 'CS']]
-        self.macro_cols = ['NASDAQ', 'IP', 'CS']
+        self.macro_cols = ['NASDAQ', 'IP', 'CS'] if use_macro else None
 
         # Create or use provided scalers
         self.yield_scaler = yield_scaler
-        self.macro_scaler = macro_scaler
+        self.macro_scaler = macro_scaler if use_macro else []
 
         # Normalize data
         self.normalized_data = self._normalize_data(data)
 
         # Prepare sequences (check point, what is sequecnes for?)
-        self.sequences = []
+        self.sequences = [] # check point, pred_horizon=6 is valid?
         for i in range(len(self.normalized_data) - seq_length - pred_horizon + 1):
             # Only include sequences that can have full prediction horizon
             self.sequences.append(i)
@@ -58,13 +60,13 @@ class YieldCurveDataset(Dataset):
             # reshape to 2D array to scale across all maturities
             self.yield_scaler.fit(yield_values.reshape(-1, 1))
 
-        # Handle macro data normalization
-        if self.macro_scaler is None:
+        # Handle macro data normalization (only if use_macro is True)
+        if self.use_macro and self.macro_scaler is None:
             if not self.is_train:
                 raise ValueError("macro_scaler must be provided for validation/test datasets")
             if self.macro_cols:  # Only if macro columns exist
                 self.macro_scaler = StandardScaler()
-                self.macro_scaler.fit(data[self.macro_cols])
+                self.macro_scaler.fit(data[self.macro_cols]) # applied to each macro variable
 
         # Apply normalization to yield data
         yield_normalized = self.yield_scaler.transform(
@@ -73,25 +75,29 @@ class YieldCurveDataset(Dataset):
         normalized_data[self.yield_cols] = yield_normalized
 
         # Apply normalization to macro data if it exists
-        if self.macro_cols:
+        if self.use_macro and self.macro_cols:
             macro_normalized = self.macro_scaler.transform(data[self.macro_cols])
             normalized_data[self.macro_cols] = macro_normalized
 
+        # Create a new DataFrame with only the columns we need
+        columns_to_keep = self.yield_cols + self.macro_cols
+        normalized_data = normalized_data[columns_to_keep]
+
         return normalized_data
 
-    def __len__(self):
-        return len(self.sequences)
+    def __len__(self): # Dataloader from PyTorch uses this function to get the length of the dataset
+        return len(self.sequences) # this length means the total number of sequences can be used for training and validation
 
     def __getitem__(self, idx):
         seq_idx = self.sequences[idx]
 
         # Get input features (past seq_length months)
-        X = self.normalized_data.iloc[seq_idx:seq_idx + self.seq_length].values
+        X = self.normalized_data.iloc[seq_idx:seq_idx + self.seq_length].values # shape of X is (seq_length, num_features)
 
         # Get target values (next pred_horizon months)
         y = np.array([
-            self.normalized_data.iloc[seq_idx + self.seq_length + horizon - 1][self.yield_cols].values
-            for horizon in range(1, self.pred_horizon + 1)
+            self.normalized_data.iloc[seq_idx + self.seq_length + horizon][self.yield_cols].values
+            for horizon in range(self.pred_horizon)
         ])
 
         return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
@@ -108,7 +114,7 @@ class YieldCurveDataset(Dataset):
         return denormalized.reshape(normalized_yields.shape)
 
 
-## ----------- Use case ------------    
+## ----------- Use case in .ipynb ---------------    
 
 # Data loading
 # Load the processed monthly data from the CSV file, using 'Date' as the index
@@ -124,7 +130,7 @@ from YCdataset import YieldCurveDataset
 
 # Create train dataset and get the scalers
 # Initialize the training dataset and fit the scalers
-train_dataset = YieldCurveDataset(df.iloc[:train_size], seq_length=12, pred_horizon=6, is_train=True)
+train_dataset = YieldCurveDataset(df.iloc[:train_size], seq_length=12, pred_horizon=6, is_train=True, use_macro=True)
 yield_scaler = train_dataset.yield_scaler  # Extract the fitted yield scaler
 macro_scaler = train_dataset.macro_scaler  # Extract the fitted macro scaler
 
@@ -136,7 +142,8 @@ val_dataset = YieldCurveDataset(
     pred_horizon=6,
     yield_scaler=yield_scaler,
     macro_scaler=macro_scaler,
-    is_train=False
+    is_train=False,
+    use_macro=True
 )
 
 # Initialize the test dataset using the scalers from the training dataset
@@ -146,7 +153,8 @@ test_dataset = YieldCurveDataset(
     pred_horizon=6,
     yield_scaler=yield_scaler,
     macro_scaler=macro_scaler,
-    is_train=False
+    is_train=False,
+    use_macro=True
 )
 
 # The scalers can also be easily saved for future use:

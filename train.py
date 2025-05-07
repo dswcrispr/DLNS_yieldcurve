@@ -51,6 +51,7 @@ def train_model(
     model = model.to(device)
     
     # Initialize the optimizer with model parameters, learning rate, and weight decay
+    # Adam uses the mini-batch gradient descent algorithm
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     
     # Learning rate scheduler to reduce learning rate when validation loss plateaus
@@ -74,7 +75,7 @@ def train_model(
     # Training loop over epochs
     for epoch in range(n_epochs):
         # Set model to training mode
-        model.train() # dropout and batchnorm are turned on
+        model.train() # dropout and batch-norm are turned on
         train_losses = []
         
         # Use tqdm for progress bar if verbose is True
@@ -110,7 +111,7 @@ def train_model(
         history['lr'].append(optimizer.param_groups[0]['lr'])
         
         # Validation phase
-        model.eval()  # Set model to evaluation mode
+        model.eval()  # Set model to evaluation mode (inactivate dropout and batch-norm)
         val_losses = []
         
         # Use tqdm for progress bar if verbose is True
@@ -122,7 +123,7 @@ def train_model(
                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
                 
                 # Forward pass
-                y_pred, factors, lambda_value = model(X_batch)
+                y_pred, factors, lambda_value = model(X_batch) # forward method in model is called
                 
                 # Compute the validation loss
                 loss = criterion(y_pred, y_batch[:, 0])
@@ -147,9 +148,12 @@ def train_model(
             # Save the best model checkpoint
             torch.save({
                 'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'val_loss': best_val_loss,
+                'model_state_dict': model.state_dict(), # save the model parameters
+                'optimizer_state_dict': optimizer.state_dict(), # save the optimizer parameters
+                'scheduler_state_dict': scheduler.state_dict(), # save the scheduler parameters
+                'val_loss': best_val_loss, # save the best validation loss
+                'train_loss': avg_train_loss, # save the average training loss
+                'history': history # save the history
             }, model_path)
             
             if verbose:
@@ -166,10 +170,46 @@ def train_model(
             break
     
     # Load the best model from checkpoint
-    checkpoint = torch.load(model_path)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    
+    try:
+        checkpoint = torch.load(model_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        history = checkpoint.get('history', history) # get saved history if available
+        
+        if verbose:
+            print(f'Loaded best model from epoch {checkpoint["epoch"]} with validation loss {checkpoint["val_loss"]:.6f}')
+
+    except Exception as e:
+        print(f"Error loading best model: {e}")
+        print('continuing with the last model state')
+
     return model, history
+
+# Function to load a model from a checkpoint
+def load_model_from_checkpoint(model, checkpoint_path, device='cuda' if torch.cuda.is_available() else 'cpu'):
+    """
+    Load a model from a checkpoint file.
+    
+    Args:
+        model: The model architecture (uninitialized)
+        checkpoint_path: Path to the saved checkpoint
+        device: Device to load the model on
+        
+    Returns:
+        model: The loaded model
+        epoch: The epoch at which the model was saved
+        val_loss: The validation loss at the time of saving
+    """
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model = model.to(device)
+        epoch = checkpoint.get('epoch', 0)
+        val_loss = checkpoint.get('val_loss', float('inf'))
+        history = checkpoint.get('history', None)
+        return model, epoch, val_loss, history
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None, 0, float('inf'), None
 
 # Function to plot the training and validation loss history
 # Displays the loss over epochs and the learning rate schedule
