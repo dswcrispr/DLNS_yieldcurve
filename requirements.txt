@@ -1,0 +1,164 @@
+# ============================================================================
+# DLNS Yield Curve Modeling - Requirements
+# ============================================================================
+# This file contains all dependencies for the Dynamic Nelson-Siegel (DLNS)
+# yield curve modeling project with deep learning architectures.
+#
+# Installation: pip install -r requirements.txt
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Deep Learning Framework
+# ----------------------------------------------------------------------------
+# PyTorch and related packages for neural network implementation
+torch==2.1.2                    # Core deep learning framework
+torchvision==0.16.2             # Computer vision utilities (torch dependency)
+torchaudio==2.1.2               # Audio processing (torch dependency)
+
+# ----------------------------------------------------------------------------
+# Scientific Computing & Data Processing
+# ----------------------------------------------------------------------------
+# Core numerical computation and data manipulation libraries
+numpy==1.26.4                   # Numerical computing and array operations
+pandas==2.2.0                   # Data manipulation and analysis
+scipy==1.12.0                   # Scientific computing and optimization
+
+# ----------------------------------------------------------------------------
+# Machine Learning & Preprocessing
+# ----------------------------------------------------------------------------
+# Scikit-learn for preprocessing, scaling, and evaluation metrics
+scikit-learn==1.4.0             # ML algorithms, preprocessing (MinMaxScaler, StandardScaler), metrics
+
+# ----------------------------------------------------------------------------
+# Data Acquisition
+# ----------------------------------------------------------------------------
+# Libraries for fetching financial and economic data
+pandas-datareader==0.10.0       # Fetch data from various sources (FRED, Yahoo Finance)
+
+# ----------------------------------------------------------------------------
+# Visualization
+# ----------------------------------------------------------------------------
+# Plotting and visualization libraries
+matplotlib==3.8.2               # Core plotting library for charts and graphs
+seaborn==0.13.1                 # Statistical data visualization (optional but recommended)
+
+# ----------------------------------------------------------------------------
+# Progress Bars & Notebook Support
+# ----------------------------------------------------------------------------
+# For training progress visualization
+tqdm==4.66.1                    # Progress bars for loops and training
+ipywidgets==8.1.1               # Interactive widgets for Jupyter notebooks
+
+# ----------------------------------------------------------------------------
+# Jupyter Notebook Support
+# ----------------------------------------------------------------------------
+# Required for running and working with Jupyter notebooks
+jupyter==1.0.0                  # Jupyter notebook environment
+notebook==7.0.7                 # Jupyter notebook interface
+ipython==8.20.0                 # Enhanced interactive Python shell
+ipykernel==6.29.0               # IPython kernel for Jupyter
+
+# ----------------------------------------------------------------------------
+# Utilities
+# ----------------------------------------------------------------------------
+# Additional utilities for saving models and data
+joblib==1.3.2                   # Efficient serialization of Python objects (for saving scalers)
+
+# ============================================================================
+# Optional Development Dependencies
+# ============================================================================
+# Uncomment the following packages if you need development tools
+
+# Code Quality & Testing
+# pytest==8.0.0                 # Testing framework
+# black==24.1.1                 # Code formatter
+# flake8==7.0.0                 # Linting tool
+# mypy==1.8.0                   # Static type checker
+
+# Documentation
+# sphinx==7.2.6                 # Documentation generator
+# sphinx-rtd-theme==2.0.0       # Read the Docs theme for Sphinx
+
+# ============================================================================
+# Package Version Notes
+# ============================================================================
+#
+# PyTorch: Version 2.1.2 provides stable CUDA support and transformer layers
+# - Supports Python 3.8-3.11
+# - Compatible with CUDA 11.8 or 12.1
+# - CPU-only installation: torch==2.1.2+cpu
+#
+# NumPy: Version 1.26.4 is compatible with Python 3.12
+# - Critical for array operations in yield curve calculations
+#
+# Pandas: Version 2.2.0 provides improved performance
+# - Used for time series data manipulation
+# - Required for pandas-datareader compatibility
+#
+# Scikit-learn: Version 1.4.0 includes:
+# - MinMaxScaler: For yield data normalization
+# - StandardScaler: For macro variable normalization
+# - Evaluation metrics: MSE, RMSE, MAE
+#
+# Pandas-datareader: Version 0.10.0 supports:
+# - FRED data fetching (interest rates, economic indicators)
+# - Multiple data sources for financial data
+#
+# Matplotlib: Version 3.8.2 for visualization:
+# - Yield curve plots
+# - Training history plots
+# - Factor evolution plots
+# - 3D surface plots
+#
+# TQDM: Progress bars during model training
+# - tqdm.notebook for Jupyter notebook compatibility
+#
+# ============================================================================
+# Installation Instructions
+# ============================================================================
+#
+# 1. Create a virtual environment (recommended):
+#    python -m venv .venv
+#    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+#
+# 2. Install all dependencies:
+#    pip install -r requirements.txt
+#
+# 3. For GPU support (CUDA 11.8):
+#    pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+#
+# 4. For GPU support (CUDA 12.1):
+#    pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121
+#
+# 5. For CPU-only installation:
+#    pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+#
+# ============================================================================
+# Dependency Tree Summary
+# ============================================================================
+#
+# Core Model Components:
+# ├── torch (neural network layers, optimizers, loss functions)
+# ├── numpy (numerical operations, array manipulations)
+# └── sklearn (data preprocessing, evaluation metrics)
+#
+# Data Pipeline:
+# ├── pandas (data loading, manipulation, time series)
+# ├── pandas-datareader (FRED data fetching)
+# └── numpy (array operations)
+#
+# Training & Evaluation:
+# ├── torch (model training, backpropagation)
+# ├── sklearn (metrics calculation)
+# └── tqdm (progress tracking)
+#
+# Visualization:
+# ├── matplotlib (all plotting)
+# └── numpy (data preparation for plots)
+#
+# Notebook Support:
+# ├── jupyter (notebook environment)
+# ├── ipywidgets (interactive widgets)
+# └── tqdm (notebook progress bars)
+#
+# ============================================================================

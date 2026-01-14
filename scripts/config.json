@@ -1,0 +1,32 @@
+{
+  "seed": 30,
+  "use_macro": true,
+  "output_dir": "./output",
+  "raw_data_file": "../raw_data.csv",
+  "processed_data_file": "df_monthly.csv",
+  "train_ratio": 0.80,
+  "val_ratio": 0.07,
+  "lookback_window": 6,
+  "pred_horizon": 6,
+  "batch_size": 16,
+  "model_params": {
+    "hidden_dim": 64,
+    "time_varying_decay": true,
+    "cnn_out_channels": 32,
+    "cnn_kernel_size": 3,
+    "transformer_dim": 64,
+    "nhead": 4,
+    "num_transformer_layers": 2,
+    "rnn_hidden_dim": 64,
+    "num_rnn_layers": 2,
+    "lstm_hidden_dim": 64,
+    "num_lstm_layers": 2,
+    "dropout": 0.1
+  },
+  "training": {
+    "learning_rate": 0.001,
+    "weight_decay": 1e-5,
+    "n_epochs": 100,
+    "patience": 30
+  }
+}
