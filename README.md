@@ -415,16 +415,6 @@ Master's Candidate
 Department of Applied Mathematics and Statistics
 Johns Hopkins University
 
-### Academic Advisor
-**Professor Haoyang Cao**
-Department of Applied Mathematics and Statistics
-Johns Hopkins University
-📧 Email: [hcao@jhu.edu](mailto:hcao@jhu.edu)
-🔗 [Faculty Profile](https://engineering.jhu.edu/ams/faculty/haoyang-cao/)
-
-### Acknowledgments
-
-This research was conducted as part of a Master's thesis project at Johns Hopkins University under the supervision of Professor Haoyang Cao. Special thanks to the Department of Applied Mathematics and Statistics for computational resources and academic support.
 
 ---
 
@@ -434,16 +424,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/YourFeature`)
-3. Commit changes (`git commit -m 'Add YourFeature'`)
-4. Push to branch (`git push origin feature/YourFeature`)
-5. Open a Pull Request
-
----
 
 ## 📌 Version History
 
@@ -456,7 +436,5 @@ Contributions are welcome! Please:
 <div align="center">
 
 **Built with PyTorch | Powered by Deep Learning | Grounded in Economics**
-
-⭐ Star this repo if you find it useful!
 
 </div>
